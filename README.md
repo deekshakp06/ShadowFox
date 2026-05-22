@@ -62,4 +62,4 @@ Each folder contains its own `README.md`, Python scripts/notebooks, and visualiz
 3. Open the `.ipynb` or `.py` files to explore the code implementation.
 
 ---
-*Internship Repository | Maintained by [Deeksha K P]*
+*Internship Repository | Maintained by Deeksha K P*
