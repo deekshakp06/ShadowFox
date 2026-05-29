@@ -1,23 +1,32 @@
-# 🚀 Task 1: Image Classification
+# 🚀 Task 1: Intelligent Image Tagging System
 
-## 📌 Project Objective
-The goal of this project is to build a robust Convolutional Neural Network (CNN) capable of classifying local images into three distinct categories: **Cars**, **Cats**, and **Dogs**, using a custom dataset.
+### 📌 Project Objective
+The goal of this project is to build and deploy a production-ready, cloud-hosted Image Tagging System. Leveraging deep convolutional neural networks, the system processes user-uploaded images and dynamically classifies them into three distinct real-world categories: **Cars**, **Cats**, and **Dogs**.
 
-## 🛠️ Design & Optimization Journey
-1. **Custom CNN Baseline:** Built an initial network from scratch. While training accuracy scaled up well, validation accuracy suffered from severe overfitting due to the limitations of learning complex object patterns from a small custom local dataset.
-2. **Transfer Learning Upgrade:** To resolve the generalization gap, the pipeline was upgraded to utilize a pre-trained **MobileNetV2** architecture (trained on the 1.4-million-image ImageNet dataset).
-3. **Architecture Details:**
-   - Frozen base feature extraction layers to preserve global knowledge weights.
-   - Added structural Data Augmentation (Random Flips & Rotations).
-   - Attached a custom classification dense head with a Dropout layer ($0.3$) to eliminate memorization paths.
+---
 
-## 📊 Final Performance Metrics
-- **Training Accuracy:** `1.0000` (**100%**)
-- **Validation Accuracy:** `0.9730` (**97.30%**)
-- **Training Epochs:** 10
+### 🛠️ Design & Optimization Journey
 
-The final performance curve shows a perfectly optimized learning path where validation metrics closely track training metrics, completely eliminating the overfitting gap.
+* **Transfer Learning Foundation:** Utilizing a pre-trained **MobileNetV2** backbone (trained on the 1.4-million-image ImageNet dataset) as a highly expressive feature extractor to compensate for a lean custom training dataset.
+* **Embedded Preprocessing Pipeline:** Integrated a mathematical `Rescaling(1./127.5, offset=-1)` layer directly into the core model architecture. This permanently resolved local-vs-production environment preprocessing mismatches and vectorized raw image input arrays on the fly.
+* **Resolution & Structural Optimization:** Upgraded baseline dimensions to MobileNetV2's native **224x224** resolution to recover granular pixel data (such as texture variations and hard edges). 
+* **Regularization & Stability:** Implemented aggressive data augmentation (`RandomFlip`, `RandomRotation`, `RandomZoom`, `RandomTranslation`) alongside a robust classification head featuring **BatchNormalization** to stabilize training steps and an upgraded **Dropout (0.4)** threshold to eliminate memorization paths.
 
-## 📂 Artifacts Included
-- `task1.py`: Complete executable training script utilizing TensorFlow/Keras.
-- `accuracy_plot.png`: Generated performance chart displaying the final accuracy scores.
+---
+
+### 🌐 Real-World Production Deployment
+Moving beyond restrictive `localhost` constraints, the system is fully deployed to production cloud infrastructure using **Hugging Face Spaces**. 
+
+* **Interface:** Powered by a clean, user-friendly **Gradio** web application wrapper.
+* **Backend:** Driven by a cloud-optimized `tensorflow-cpu` pipeline designed for rapid inference, minimal memory consumption, and 24/7 global availability.
+* **Live Production Link:** https://huggingface.co/spaces/deekshakp/Image-Classifier
+
+---
+
+### 📂 Technical Artifacts Included
+
+* **`task1.py`** – Complete, end-to-end model training, data augmentation, and performance evaluation pipeline.
+* **`app.py`** – Lightweight production script orchestrating cloud-side Gradio UI inference logic.
+* **`requirements.txt`** – Cloud-optimized manifest declaring server-side environment dependencies.
+* **`my_model.keras`** – Saved, production-ready deep learning architecture weights.
+* **`accuracy_plot.png`** – Clear visual analytics tracking training and validation convergence curves.
