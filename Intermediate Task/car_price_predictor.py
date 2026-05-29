@@ -2,9 +2,10 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+import joblib  # Added for saving the model artifact
+from sklearn.model_selection import train_test_split, RandomizedSearchCV  # Added RandomizedSearchCV
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error  # Added mean_squared_error
 
 # 1. Load data
 csv_file = "car.csv"
@@ -46,24 +47,54 @@ y = df_encoded['Selling_Price']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 
-# 4. Model Training
-print("Training Random Forest model...")
-# Initialize Random Forest with 100 decision trees
-rf = RandomForestRegressor(n_estimators=100, random_state=42)
-rf.fit(X_train, y_train)
+# 4. Model Training (Upgraded with Hyperparameter Tuning)
+print("Optimizing Random Forest hyperparameters via RandomizedSearchCV...")
+
+# Define the hyperparameter grid space
+param_distributions = {
+    'n_estimators': [50, 100, 150, 200],
+    'max_depth': [None, 10, 15, 20],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': ['sqrt', 'log2', None]
+}
+
+# Base model instance
+rf_base = RandomForestRegressor(random_state=42)
+
+# Set up Cross-Validated Random Search Optimization
+rf_tuned = RandomizedSearchCV(
+    estimator=rf_base,
+    param_distributions=param_distributions,
+    n_iter=15,
+    cv=3,
+    random_state=42,
+    n_jobs=-1,
+    scoring='r2'
+)
+
+# Run hyperparameter search training
+rf_tuned.fit(X_train, y_train)
+best_rf = rf_tuned.best_estimator_
+
+print(f"✅ Optimal Strategy Selected: {rf_tuned.best_params_}")
 
 
-# 5. Model Evaluation
-# Run predictions on the unseen test set
-preds = rf.predict(X_test)
+# 5. Model Evaluation (Upgraded with MSE & RMSE)
+# Run predictions using the newly optimized best model configuration
+preds = best_rf.predict(X_test)
 
 # Calculate model performance metrics
 r2 = r2_score(y_test, preds)
 mae = mean_absolute_error(y_test, preds)
+mse = mean_squared_error(y_test, preds)
+rmse = np.sqrt(mse)
 
 print("\n--- Model Evaluation ---")
 print(f"R2 Score: {r2 * 100:.2f}%")
 print(f"MAE: {mae:.3f} Lakhs")
+print(f"MSE: {mse:.3f}")
+print(f"RMSE: {rmse:.3f} Lakhs")
 
 # Create a quick dataframe to preview true vs predicted outputs side by side
 results_preview = pd.DataFrame({
@@ -75,8 +106,8 @@ print(results_preview.to_string())
 
 
 # 6. Feature Importance Ranking
-# Extract relative impact weights of each feature from the trained forest
-importances = rf.feature_importances_
+# Extract relative impact weights from the best selected estimator
+importances = best_rf.feature_importances_
 importance_df = pd.DataFrame({
     'Feature': X.columns, 
     'Importance': importances
@@ -96,7 +127,7 @@ plt.scatter(y_test, preds, color='blue', alpha=0.6, edgecolors='black')
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linestyle='--')
 
 # Chart labels and formatting
-plt.title('Actual vs Predicted Car Prices')
+plt.title('Actual vs Predicted Car Prices (Tuned Model)')
 plt.xlabel('Actual Price (Lakhs)')
 plt.ylabel('Predicted Price (Lakhs)')
 plt.grid(True, linestyle=':', alpha=0.6)
@@ -105,3 +136,13 @@ plt.grid(True, linestyle=':', alpha=0.6)
 plt.savefig('price_prediction_plot.png')
 plt.close()
 print("\nPlot successfully saved as 'price_prediction_plot.png'")
+
+
+# 8. Save Model Checkpoint for Deployment (New Section)
+print("\nSaving structural deployment checkpoints...")
+deployment_package = {
+    'model': best_rf,
+    'features': X.columns.tolist()
+}
+joblib.dump(deployment_package, "car_price_predictor.pkl")
+print("🎉 Model saved successfully as 'car_price_predictor.pkl'!")

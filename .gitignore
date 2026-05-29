@@ -1,5 +1,10 @@
+# Ignore large model files
 *.safetensors
 *.bin
 *.pt
+*.h5
+
+# Ignore system/temp files
 __pycache__/
 .ipynb_checkpoints/
+.DS_Store
