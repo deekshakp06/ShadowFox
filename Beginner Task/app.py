@@ -34,9 +34,10 @@ demo = gr.Interface(
     fn=predict_image, 
     inputs=gr.Image(label="Upload Image (Car, Cat, or Dog)"), 
     outputs=gr.Label(num_top_classes=3, label="Predictions"),
-    title="🌟 Car vs. Cat vs. Dog Classifier Pro",
-    description="Task 1 complete deployment. Powered by a fine-tuned MobileNetV2 architecture with custom high-accuracy classification headers."
+    title="Intelligent Image Tagging System",
+    description="Upload an image containing a car, cat, or dog. The deep learning system will process the visual features and automatically apply the appropriate category tags with probability scores."
 )
+
 
 if __name__ == "__main__":
     # Launch the local web server

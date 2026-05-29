@@ -1,4 +1,4 @@
-# 🚀 Advance Task: Localized LM Deployment & Comparative Analysis
+# 🚀 Task 3: Localized LM Deployment & Comparative Analysis
 
 ## 📌 Project Objective
 The goal of this project is to implement, explore, and rigorously analyze the behavior of an open-weight Language Model (TinyLlama) in a localized environment. This project focuses on evaluating contextual understanding, generation capabilities, and architectural performance metrics.
