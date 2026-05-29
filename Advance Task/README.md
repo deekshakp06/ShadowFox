@@ -42,7 +42,7 @@ Moving beyond local terminal scripts and notebooks, the optimized Small Language
 
 * **User Interface:** Interactive web dashboard powered by **Gradio**, giving real-time tracking of generation outputs and model latencies.
 * **Cloud Architecture:** Hosted on **Hugging Face Spaces** platform infrastructure.
-* **Live Production Link:** [Insert your Hugging Face Space URL here]
+* **Live Production Link:** https://huggingface.co/spaces/deekshakp/TinyLlama-Local-Deployment
 
 ---
 
