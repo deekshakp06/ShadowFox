@@ -1,0 +1,3 @@
+"Upload Image (Car, Cat, or Dog)",Predictions,timestamp
+".gradio\flagged\Upload Image (Car, Cat, or Dog)\b90c947e1a80cc996aa0\Labrador Retriever_31.jpg","{""label"": ""cat"", ""confidences"": [{""label"": ""cat"", ""confidence"": 0.9460977911949158}, {""label"": ""car"", ""confidence"": 0.05359688773751259}, {""label"": ""dog"", ""confidence"": 0.00030534237157553434}]}",2026-05-22 23:44:56.532460
+".gradio\flagged\Upload Image (Car, Cat, or Dog)\c318c6ca33dee78939c0\n02093428_12624.jpg","{""label"": ""cat"", ""confidences"": [{""label"": ""cat"", ""confidence"": 0.9795280694961548}, {""label"": ""car"", ""confidence"": 0.020050089806318283}, {""label"": ""dog"", ""confidence"": 0.000421808916144073}]}",2026-05-22 23:45:18.866155

@@ -1,119 +1,106 @@
-# ==========================================
-# STEP 1: IMPORT LIBRARIES & LOAD DATA
-# ==========================================
 import tensorflow as tf
+from tensorflow.keras import layers, models
 import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report
 import numpy as np
-import os
 
-# Identify folder path dynamically
-if os.path.exists("./Task 1/dataset"):
-    DATASET_PATH = "./Task 1/dataset"
-elif os.path.exists("./dataset"):
-    DATASET_PATH = "./dataset"
-else:
-    print("❌ Error: Could not find the 'dataset' directory!")
-    exit()
+# 1. Configuration
+DATASET_PATH = "./dataset"
+IMG_SIZE = (224, 224)  # Upgraded to MobileNetV2's native resolution
+BATCH_SIZE = 16        # Better gradient stability
 
-print(f"✅ Found dataset at: {DATASET_PATH}")
-
-# MobileNetV2 expects larger images to extract rich features
-IMG_SIZE = (128, 128)
-BATCH_SIZE = 8
-
+# 2. Data Loading (Balanced and Shuffled)
+print("--- Loading Datasets ---")
 train_dataset = tf.keras.utils.image_dataset_from_directory(
-    DATASET_PATH,
-    validation_split=0.2,
-    subset="training",
-    seed=42,
-    image_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    label_mode='categorical'
+    DATASET_PATH, validation_split=0.2, subset="training", seed=42, 
+    image_size=IMG_SIZE, batch_size=BATCH_SIZE, label_mode='categorical', shuffle=True
 )
 
 val_dataset = tf.keras.utils.image_dataset_from_directory(
-    DATASET_PATH,
-    validation_split=0.2,
-    subset="validation",
-    seed=42,
-    image_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    label_mode='categorical'
+    DATASET_PATH, validation_split=0.2, subset="validation", seed=42, 
+    image_size=IMG_SIZE, batch_size=BATCH_SIZE, label_mode='categorical', shuffle=True
 )
 
-# 🌟 ANTI-OVERFITTING 1: GENTLE AUGMENTATION
-data_augmentation = tf.keras.Sequential([
-    tf.keras.layers.RandomFlip("horizontal"),
-    tf.keras.layers.RandomRotation(0.1),
-])
+CLASS_NAMES = train_dataset.class_names
+print(f"Detected classes in alphabetical order: {CLASS_NAMES}\n")
 
-# Prefetch optimization for memory performance
-train_dataset = train_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
-val_dataset = val_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
-
-# ==========================================
-# STEP 2: IMPORT PRE-TRAINED MOBILENETV2
-# ==========================================
-# We load Google's MobileNetV2 without its top layer, using weights trained on ImageNet
+# 3. Model Architecture
 base_model = tf.keras.applications.MobileNetV2(
-    input_shape=(128, 128, 3),
-    include_top=False,
+    input_shape=(224, 224, 3), 
+    include_top=False, 
     weights='imagenet'
 )
+base_model.trainable = False  # Keep the complex features frozen safely
 
-# 🌟 ANTI-OVERFITTING 2: FREEZE THE BASE KNOWLEDGE
-# This prevents your small dataset from messing up the pre-trained feature detectors
-base_model.trainable = False
-
-# ==========================================
-# STEP 3: ASSEMBLE THE ACCURACY-BOOSTED MODEL
-# ==========================================
-model = tf.keras.models.Sequential([
-    tf.keras.layers.InputLayer(input_shape=(128, 128, 3)),
-    data_augmentation,
+model = models.Sequential([
+    # Step A: Normalization Layer (Scales 0-255 pixels to [-1, 1] internally)
+    layers.Rescaling(1./127.5, offset=-1, input_shape=(224, 224, 3)),
     
-    # MobileNetV2 requires inputs scaled between [-1, 1]
-    tf.keras.layers.Lambda(lambda x: tf.keras.applications.mobilenet_v2.preprocess_input(x)),
+    # Step B: Advanced Data Augmentation (Prevents overfitting)
+    layers.RandomFlip("horizontal"),
+    layers.RandomRotation(0.2),
+    layers.RandomZoom(0.2),
+    layers.RandomTranslation(0.1, 0.1),
     
+    # Step C: Pre-trained Base Feature Extractor
     base_model,
+    layers.GlobalAveragePooling2D(),
     
-    # Global pooling compresses the complex features into a clean layout
-    tf.keras.layers.GlobalAveragePooling2D(),
-    
-    # Classification head
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dropout(0.3), # Extra shield against overfitting
-    tf.keras.layers.Dense(3, activation='softmax') # 3 classes: car, cat, dog
+    # Step D: High-Performance Classification Head
+    layers.Dense(256, activation='relu'),
+    layers.BatchNormalization(),  # Keeps features scaled and balanced
+    layers.Dropout(0.4),          # Breaks reliance on specific pixel patches
+    layers.Dense(3, activation='softmax')
 ])
 
-# ==========================================
-# STEP 4: COMPILE AND RUN TRAINING
-# ==========================================
+# Use a steady learning rate paired with the new normalization layers
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-    loss='categorical_crossentropy',
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), 
+    loss='categorical_crossentropy', 
     metrics=['accuracy']
 )
 
-print("\n--- Training Transfer Learning Model ---")
-# Pre-trained models learn incredibly fast; 10 epochs is plenty to see high scores
-history = model.fit(
-    train_dataset,
-    validation_data=val_dataset,
-    epochs=10
-)
+# 4. Training
+print("--- Training Model ---")
+EPOCHS = 25  # Increased epochs to let the stronger dense layers fully converge
+history = model.fit(train_dataset, validation_data=val_dataset, epochs=EPOCHS)
 
-# ==========================================
-# STEP 5: PLOT HIGH ACCURACY METRICS
-# ==========================================
-plt.figure(figsize=(8, 5))
-plt.plot(history.history['accuracy'], label='Training Accuracy', color='blue', linewidth=2)
-plt.plot(history.history['val_accuracy'], label='Validation Accuracy', color='orange', linewidth=2)
-plt.xlabel('Epochs')
-plt.ylabel('Accuracy Score')
-plt.title('Transfer Learning Model Performance')
-plt.legend(loc='lower right')
-plt.grid(True)
+# 5. Evaluation
+print("\n--- Generating Final Classification Report ---")
+y_true = []
+y_pred = []
+
+for images, labels in val_dataset:
+    preds = model.predict(images, verbose=0)
+    y_true.extend(np.argmax(labels.numpy(), axis=1))
+    y_pred.extend(np.argmax(preds, axis=1))
+
+print("\n" + classification_report(y_true, y_pred, target_names=CLASS_NAMES))
+
+# 6. Save Artifacts
+model.save('my_model.keras')
+print("✅ High-performance model saved to 'my_model.keras'")
+
+# Create and save a clean performance plot
+plt.figure(figsize=(12, 4))
+
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Val Accuracy')
+plt.title('Model Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Val Loss')
+plt.title('Model Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.tight_layout()
 plt.savefig('accuracy_plot.png')
-print("\n🎯 High-accuracy plot saved successfully as 'accuracy_plot.png'!")
-plt.show()
+print("✅ Performance graphs saved to 'accuracy_plot.png'")
+print("\n🎉 Task 1 Training pipeline execution complete!")
